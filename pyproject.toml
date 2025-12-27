@@ -17,6 +17,11 @@ line-length = 88
 
 [tool.ruff.lint]
 select = ["ALL"]
+exclude = [
+    "__init__.py",
+    "tests/*",
+    "examples/*",
+]
 ignore = [
     "D203",    # 1 blank line required before class docstring (conflict with D211)
     "D213",    # Multi-line docstring summary should start at the second line
