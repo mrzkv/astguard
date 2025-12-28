@@ -21,17 +21,25 @@ if [[ $(echo -e "$PYTHON_VERSION\n3.8" | sort -V | head -n1) != "3.8" ]]; then
     exit 1
 fi
 
-# Попытка установки через uv или pip
-echo -e "${BLUE}Установка пакета...${NC}"
+# Проверка наличия git
+if ! command -v git &> /dev/null; then
+    echo -e "${RED}Ошибка: git не найден. Пожалуйста, установите git.${NC}"
+    exit 1
+fi
+
+# Попытка установки через uv или pip из репозитория GitHub
+REPO_URL="git+https://github.com/mrzkv/ib-static-analyzer.git"
+
+echo -e "${BLUE}Установка пакета из GitHub...${NC}"
 if command -v uv &> /dev/null; then
-    if uv pip install . ; then
+    if uv pip install "$REPO_URL" ; then
         echo -e "${GREEN}Установка через uv завершена успешно!${NC}"
         echo -e "Теперь вы можете использовать команду: ${BLUE}astguard --help${NC}"
         exit 0
     fi
 fi
 
-if python3 -m pip install . --break-system-packages ; then
+if python3 -m pip install "$REPO_URL" --break-system-packages ; then
     echo -e "${GREEN}Установка через pip завершена успешно!${NC}"
     echo -e "Теперь вы можете использовать команду: ${BLUE}astguard --help${NC}"
 else
