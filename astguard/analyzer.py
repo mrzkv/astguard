@@ -13,7 +13,7 @@ try:
 except ImportError:
     import tomli as tomllib
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from .vulnerabilities import FUNCTION_TO_CWE, SOURCES, Finding
 
@@ -489,17 +489,10 @@ class StaticAnalyzer:
             lines = content.splitlines()
             tree = ast.parse(content)
 
-            # Pass 1: Collect function sinks for inter-procedural analysis
-            collector = SecurityVisitor(
-                path, active_patterns, collect_only=True, file_lines=lines
-            )
-            collector.visit(tree)
-
-            # Pass 2: Actual analysis with collected information
+            # Single pass analysis
             visitor = SecurityVisitor(
                 path,
                 active_patterns,
-                function_sinks=collector.function_sinks,
                 file_lines=lines,
             )
             visitor.visit(tree)
@@ -543,14 +536,17 @@ class StaticAnalyzer:
 
     def _collect_global_sinks(
         self, path: Path, files: List[Path], active_patterns: Dict
-    ) -> Dict:
+    ) -> Tuple[Dict, Dict]:
         """Collect function sinks from all files for inter-procedural analysis."""
         global_function_sinks = {}
+        file_cache = {}
         for file in files:
             try:
                 content = file.read_text(encoding="utf-8")
                 lines = content.splitlines()
                 tree = ast.parse(content)
+                file_cache[file] = (lines, tree)
+
                 collector = SecurityVisitor(
                     file, active_patterns, collect_only=True, file_lines=lines
                 )
@@ -579,7 +575,7 @@ class StaticAnalyzer:
 
             except Exception as e:  # noqa: BLE001
                 print(f"Error during collection in {file}: {e}", file=sys.stderr)
-        return global_function_sinks
+        return global_function_sinks, file_cache
 
     def analyze_directory(self, directory_path: Union[str, Path]) -> List[Finding]:
         """Recursively analyze all Python files in a directory.
@@ -607,17 +603,17 @@ class StaticAnalyzer:
             if cwe_id not in exclude_cwes
         }
 
-        # Pass 1: Global collection of function sinks
-        global_function_sinks = self._collect_global_sinks(
+        # Pass 1: Global collection of function sinks and caching
+        global_function_sinks, file_cache = self._collect_global_sinks(
             path, files_to_analyze, active_patterns
         )
 
         # Pass 2: Actual analysis
         for file in files_to_analyze:
+            if file not in file_cache:
+                continue
             try:
-                content = file.read_text(encoding="utf-8")
-                lines = content.splitlines()
-                tree = ast.parse(content)
+                lines, tree = file_cache[file]
                 visitor = SecurityVisitor(
                     file,
                     active_patterns,
