@@ -133,6 +133,7 @@ def calculate(expression):
 
 ### Быстрая установка
 
+#### Linux и macOS (Bash)
 Для установки одной командой выполните:
 ```bash
 curl -sSL https://raw.githubusercontent.com/mrzkv/ib-static-analyzer/main/install.sh | bash
@@ -142,7 +143,21 @@ curl -sSL https://raw.githubusercontent.com/mrzkv/ib-static-analyzer/main/instal
 ```bash
 git clone https://github.com/mrzkv/ib-static-analyzer.git
 cd ib-static-analyzer
+chmod +x install.sh
 ./install.sh
+```
+
+#### Windows (PowerShell)
+Для установки одной командой выполните (PowerShell сам запросит права администратора):
+```powershell
+irm https://raw.githubusercontent.com/mrzkv/ib-static-analyzer/main/install.ps1 | iex
+```
+
+Или склонируйте репозиторий и запустите скрипт:
+```powershell
+git clone https://github.com/mrzkv/ib-static-analyzer.git
+cd ib-static-analyzer
+.\install.ps1
 ```
 
 ### Требования
