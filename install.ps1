@@ -57,9 +57,39 @@ $REPO_URL = "git+https://github.com/mrzkv/ib-static-analyzer.git"
 Write-Host "Установка пакета из GitHub..." -ForegroundColor Cyan
 
 try {
+    # 4.1 Пытаемся найти путь к Scripts Python
+    try {
+        $pythonScripts = (python -c "import sysconfig; print(sysconfig.get_path('scripts'))" 2>$null).Trim()
+        if ($null -ne $pythonScripts -and (Test-Path $pythonScripts)) {
+            if ($env:PATH -notlike "*$pythonScripts*") {
+                Write-Host "Добавление $pythonScripts в PATH текущей сессии..." -ForegroundColor Gray
+                $env:PATH = "$pythonScripts;" + $env:PATH
+                
+                # Также пытаемся добавить в пользовательский PATH на постоянной основе, если его там нет
+                $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
+                if ($userPath -notlike "*$pythonScripts*") {
+                    Write-Host "Добавление $pythonScripts в пользовательский PATH навсегда..." -ForegroundColor Gray
+                    # Аккуратно объединяем, чтобы не было лишних точек с запятой
+                    if ($userPath -and !$userPath.EndsWith(";")) { $userPath += ";" }
+                    [Environment]::SetEnvironmentVariable("Path", "$userPath$pythonScripts", "User")
+                }
+            }
+        }
+    } catch {
+        Write-Host "Предупреждение: Не удалось автоматически определить путь к Python Scripts." -ForegroundColor Yellow
+    }
+
     python -m pip install $REPO_URL
     Write-Host "`nУстановка завершена успешно!" -ForegroundColor Green
-    Write-Host "Теперь вы можете использовать команду: " -NoNewline
+    
+    # 4.2 Проверка доступности команды в текущей сессии
+    if (!(Get-Command astguard -ErrorAction SilentlyContinue)) {
+        Write-Host "`nВнимание: Команда 'astguard' может быть недоступна в этом окне без перезапуска." -ForegroundColor Yellow
+        Write-Host "Попробуйте закрыть и снова открыть PowerShell или выполнить:" -ForegroundColor Yellow
+        Write-Host "  `$env:PATH = `"$pythonScripts;`" + `$env:PATH" -ForegroundColor Cyan
+    }
+
+    Write-Host "`nТеперь вы можете использовать команду: " -NoNewline
     Write-Host "astguard --help" -ForegroundColor Cyan
 } catch {
     Write-Host "Ошибка при установке через pip. Попробуйте запустить PowerShell от имени администратора." -ForegroundColor Red

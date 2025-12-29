@@ -148,7 +148,7 @@ chmod +x install.sh
 ```
 
 #### Windows (PowerShell)
-Для установки одной командой выполните (PowerShell сам запросит права администратора):
+Для установки выполните скрипт в powershell(от имени администратора):
 ```powershell
 irm https://raw.githubusercontent.com/mrzkv/ib-static-analyzer/main/install.ps1 | iex
 ```
