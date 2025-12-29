@@ -62,17 +62,17 @@ AST представляет структуру кода в виде иерар�
 
 ## Базовые поддерживаемые классы уязвимостей
 
-| Тип уязвимости | Паттерн детектирования | Референс CWE |
-|----------------|------------------------|--------------|
-| Code Injection | `eval()`, `exec()`, `compile()` | CWE-94 |
-| Command Injection | `os.system()`, `subprocess.*` | CWE-78 |
-| Deserialization | `pickle.loads()`, `pickle.load()`, `yaml.unsafe_load()`, `yaml.load()` | CWE-502 |
-| Path Traversal | `open()`, `os.path.join()` | CWE-22 |
-| Weak Cryptography | `hashlib.md5()`, `hashlib.sha1()` | CWE-327 |
-| Hardcoded Credentials | Переменные с именами `password`, `token` и др. | CWE-798 |
-| Debug Features | Вызовы с аргументом `debug=True` | CWE-489 |
-| SQL Injection | Метод `.execute()` с динамическими строками | CWE-89 |
-| XML External Entities (XXE) | `xml.etree.ElementTree`, `lxml.etree` | CWE-611 |
+| Тип уязвимости              | Паттерн детектирования                                                 | Референс CWE |
+|-----------------------------|------------------------------------------------------------------------|--------------|
+| Code Injection              | `eval()`, `exec()`, `compile()`                                        | CWE-94       |
+| Command Injection           | `os.system()`, `subprocess.*`                                          | CWE-78       |
+| Deserialization             | `pickle.loads()`, `pickle.load()`, `yaml.unsafe_load()`, `yaml.load()` | CWE-502      |
+| Path Traversal              | `open()`, `os.path.join()`                                             | CWE-22       |
+| Weak Cryptography           | `hashlib.md5()`, `hashlib.sha1()`                                      | CWE-327      |
+| Hardcoded Credentials       | Переменные с именами `password`, `token` и др.                         | CWE-798      |
+| Debug Features              | Вызовы с аргументом `debug=True`                                       | CWE-489      |
+| SQL Injection               | Метод `.execute()` с динамическими строками                            | CWE-89       |
+| XML External Entities (XXE) | `xml.etree.ElementTree`, `lxml.etree`                                  | CWE-611      |
 
 ## Пример обнаруженной уязвимости
 
