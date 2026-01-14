@@ -132,7 +132,7 @@ DANGEROUS_FUNCTIONS = {
         name="XML External Entities (XXE)",
         description="Небезопасная конфигурация XML-парсера",
         severity=SeverityLevel.MEDIUM,
-        patterns=["xml.etree.ElementTree", "lxml.etree"],
+        patterns=["parse", "fromstring", "XMLParser", "XML"],
         recommendation="Деактивировать обработку внешних сущностей в парсере",
         risk="Раскрытие файлов на сервере или SSRF",
     ),

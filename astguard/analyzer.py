@@ -22,13 +22,13 @@ class SecurityVisitor(ast.NodeVisitor):
     """AST visitor for finding potential vulnerabilities."""
 
     def __init__(
-        self,
-        file_path: Path,
-        patterns_to_cwe: Dict[str, str],
-        function_sinks: Optional[Dict[str, Set[str]]] = None,
-        *,
-        collect_only: bool = False,
-        file_lines: Optional[List[str]] = None,
+            self,
+            file_path: Path,
+            patterns_to_cwe: Dict[str, str],
+            function_sinks: Optional[Dict[str, Set[str]]] = None,
+            *,
+            collect_only: bool = False,
+            file_lines: Optional[List[str]] = None,
     ) -> None:
         """Initialize the visitor.
 
@@ -63,7 +63,8 @@ class SecurityVisitor(ast.NodeVisitor):
         if "# noqa" in line:
             comment_part = line.split("# noqa")[1].strip()
             if not comment_part or (
-                comment_part.startswith(":") and (not cwe_id or cwe_id in comment_part)
+                    comment_part.startswith(":")
+                    and (not cwe_id or cwe_id in comment_part)
             ):
                 return True
             if not comment_part.startswith(":"):  # Just
@@ -128,16 +129,33 @@ class SecurityVisitor(ast.NodeVisitor):
         # If it's a constant, it's safe (e.g., cursor.execute("SELECT 1"))
         if isinstance(arg, ast.Constant):
             return True
-        # If it's a call, it might be an ORM query object builder (e.g., session.execute(select(...)))
+        # If it's a call, it might be an ORM query object builder
+        # (e.g., session.execute(select(...)))
         # ORM query objects are usually safer than raw strings
-        if isinstance(arg, ast.Call):
-            return True
-        # For other types (names, binops, f-strings), we rely on taint analysis in _check_known_vulnerabilities
-        return False
+        # For other types (names, binops, f-strings),
+        # we rely on taint analysis in _check_known_vulnerabilities
+        return isinstance(arg, ast.Call)
+
 
     def _is_safe_eval(self, node: ast.Call) -> bool:
         """Check if an eval/exec call is safe (uses a constant)."""
         return bool(node.args and isinstance(node.args[0], ast.Constant))
+
+    def _is_safe_path_op(self, node: ast.Call) -> bool:
+        """Check if a path operation is safe (uses constants)."""
+        return all(isinstance(arg, ast.Constant) for arg in node.args)
+
+    def _is_safe_xml(self, node: ast.Call) -> bool:
+        """Check if an XML parser call is safe."""
+        # For XMLParser, check if resolve_entities is set to False
+        if any(
+            isinstance(kw.value, ast.Constant) and kw.value.value is False
+            for kw in node.keywords
+            if kw.arg == "resolve_entities"
+        ):
+            return True
+        # Also safe if all arguments are constants (no user input)
+        return bool(node.args) and all(isinstance(arg, ast.Constant) for arg in node.args)
 
     def _is_tainted(self, node: ast.AST) -> bool:
         """Check if an AST node contains tainted data."""
@@ -161,9 +179,9 @@ class SecurityVisitor(ast.NodeVisitor):
         """Search for a matching source pattern."""
         for pattern in SOURCES:
             if (
-                full_call_name == pattern
-                or full_call_name.endswith(f".{pattern}")
-                or full_call_name.startswith(f"{pattern}.")
+                    full_call_name == pattern
+                    or full_call_name.endswith(f".{pattern}")
+                    or full_call_name.startswith(f"{pattern}.")
             ):
                 return pattern
         return None
@@ -176,7 +194,7 @@ class SecurityVisitor(ast.NodeVisitor):
         return default
 
     def _check_known_vulnerabilities(
-        self, matched_pattern: str, node: ast.Call
+            self, matched_pattern: str, node: ast.Call
     ) -> None:
         """Check if a call matching a known pattern is a vulnerability."""
         is_potentially_safe = self._is_call_potentially_safe(matched_pattern, node)
@@ -184,7 +202,7 @@ class SecurityVisitor(ast.NodeVisitor):
         has_tainted_kwargs = any(self._is_tainted(kw.value) for kw in node.keywords)
 
         if (
-            not is_potentially_safe or has_tainted_args or has_tainted_kwargs
+                not is_potentially_safe or has_tainted_args or has_tainted_kwargs
         ) and not self.collect_only:
             cwe_id = self.patterns_to_cwe.get(matched_pattern)
             if not self._should_ignore(node.lineno, cwe_id):
@@ -215,7 +233,7 @@ class SecurityVisitor(ast.NodeVisitor):
                         )
 
     def _check_interprocedural_sinks(
-        self, full_call_name: str, node: ast.Call, matched_pattern: Optional[str]
+            self, full_call_name: str, node: ast.Call, matched_pattern: Optional[str]
     ) -> None:
         """Check if calling a function that has internal sinks with tainted data."""
         if self.collect_only or full_call_name not in self.function_sinks:
@@ -237,7 +255,7 @@ class SecurityVisitor(ast.NodeVisitor):
                             node.lineno,
                             matched_pattern or full_call_name,
                             self.current_function,
-                        )
+                            )
                     )
                     if cwe_id and not self.findings[-1].cwe_details:
                         pattern = self._get_pattern_by_cwe(cwe_id, full_call_name)
@@ -257,9 +275,9 @@ class SecurityVisitor(ast.NodeVisitor):
         for kw in node.keywords:
             pattern = f"{kw.arg}=True"
             if (
-                pattern in self.patterns_to_cwe
-                and isinstance(kw.value, ast.Constant)
-                and kw.value.value is True
+                    pattern in self.patterns_to_cwe
+                    and isinstance(kw.value, ast.Constant)
+                    and kw.value.value is True
             ):
                 cwe_id = self.patterns_to_cwe.get(pattern)
                 if not self._should_ignore(node.lineno, cwe_id):
@@ -294,9 +312,9 @@ class SecurityVisitor(ast.NodeVisitor):
         """Search for a suitable pattern for the call name."""
         for pattern in self.patterns_to_cwe:
             if (
-                full_call_name == pattern
-                or full_call_name.endswith(f".{pattern}")
-                or full_call_name.startswith(f"{pattern}.")
+                    full_call_name == pattern
+                    or full_call_name.endswith(f".{pattern}")
+                    or full_call_name.startswith(f"{pattern}.")
             ):
                 return pattern
         return None
@@ -306,14 +324,17 @@ class SecurityVisitor(ast.NodeVisitor):
         if matched_pattern.startswith("subprocess."):
             return self._is_safe_subprocess(node)
 
-        if matched_pattern == "os.system":
-            return self._is_safe_execute(node)
-
-        if matched_pattern == "execute":
+        if matched_pattern in ("os.system", "execute"):
             return self._is_safe_execute(node)
 
         if matched_pattern in ("eval", "exec", "compile"):
             return self._is_safe_eval(node)
+
+        if matched_pattern in ("open", "os.path.join"):
+            return self._is_safe_path_op(node)
+
+        if matched_pattern in ("parse", "fromstring", "XMLParser", "XML"):
+            return self._is_safe_xml(node)
 
         return False
 
@@ -337,10 +358,10 @@ class SecurityVisitor(ast.NodeVisitor):
 
                 # Check for debug=True
                 if (
-                    name == "debug"
-                    and "debug=True" in self.patterns_to_cwe
-                    and isinstance(node.value, ast.Constant)
-                    and node.value.value is True
+                        name == "debug"
+                        and "debug=True" in self.patterns_to_cwe
+                        and isinstance(node.value, ast.Constant)
+                        and node.value.value is True
                 ):
                     cwe_id = self.patterns_to_cwe.get("debug=True")
                     if not self._should_ignore(node.lineno, cwe_id):
@@ -371,11 +392,11 @@ class SecurityVisitor(ast.NodeVisitor):
         name_lower = name.lower()
         for secret_pattern in ["password", "secret", "token", "api_key"]:
             if (
-                secret_pattern in name_lower
-                and secret_pattern in self.patterns_to_cwe
-                and isinstance(node.value, ast.Constant)
-                and isinstance(node.value.value, str)
-                and node.value.value
+                    secret_pattern in name_lower
+                    and secret_pattern in self.patterns_to_cwe
+                    and isinstance(node.value, ast.Constant)
+                    and isinstance(node.value.value, str)
+                    and node.value.value
             ):
                 cwe_id = self.patterns_to_cwe.get(secret_pattern)
                 if not self._should_ignore(node.lineno, cwe_id):
